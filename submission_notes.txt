@@ -1,0 +1,17 @@
+Project Name: PixelProof – Deepfake Detection Prototype
+
+Access:
+- GitHub repository link provided
+
+Running Instructions:
+- Backend runs locally using FastAPI (TensorFlow model)
+- Frontend runs using React (Vite)
+
+Notes:
+- Model inference works end-to-end
+- API endpoint /analyze available
+- Prototype demonstrates core functionality
+
+Original Work:
+- Code adapted and extended from research references
+- Architecture, integration, and UI are original
