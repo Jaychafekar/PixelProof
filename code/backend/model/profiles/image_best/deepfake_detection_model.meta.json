@@ -1,0 +1,456 @@
+{
+  "dataset_roots": [
+    "code\\data\\real_and_fake_face",
+    "code\\data\\archive1"
+  ],
+  "dataset_sources": {
+    "archive1": {
+      "total": 16433,
+      "fake": 8428,
+      "real": 8005,
+      "images": 16433,
+      "videos": 0
+    },
+    "real_and_fake_face": {
+      "total": 2041,
+      "fake": 960,
+      "real": 1081,
+      "images": 2041,
+      "videos": 0
+    }
+  },
+  "holdout_dataset_roots": [],
+  "holdout_dataset_sources": {},
+  "class_indices": {
+    "training_fake": 0,
+    "training_real": 1
+  },
+  "image_size": [
+    96,
+    96
+  ],
+  "preprocess_mode": "mobilenet_v2",
+  "batch_size": 32,
+  "head_epochs": 4,
+  "fine_tune_epochs": 2,
+  "unfreeze_last_n": 60,
+  "eval_video_frames": 5,
+  "face_crop_probability": 0.75,
+  "artifact_source": "new_training_run",
+  "split_counts": {
+    "train": 13062,
+    "val": 2706,
+    "test": 2706
+  },
+  "split_breakdown": {
+    "train": {
+      "archive1": {
+        "total": 11633,
+        "fake": 6028,
+        "real": 5605,
+        "images": 11633,
+        "videos": 0
+      },
+      "real_and_fake_face": {
+        "total": 1429,
+        "fake": 672,
+        "real": 757,
+        "images": 1429,
+        "videos": 0
+      }
+    },
+    "val": {
+      "archive1": {
+        "total": 2400,
+        "fake": 1200,
+        "real": 1200,
+        "images": 2400,
+        "videos": 0
+      },
+      "real_and_fake_face": {
+        "total": 306,
+        "fake": 144,
+        "real": 162,
+        "images": 306,
+        "videos": 0
+      }
+    },
+    "test": {
+      "archive1": {
+        "total": 2400,
+        "fake": 1200,
+        "real": 1200,
+        "images": 2400,
+        "videos": 0
+      },
+      "real_and_fake_face": {
+        "total": 306,
+        "fake": 144,
+        "real": 162,
+        "images": 306,
+        "videos": 0
+      }
+    }
+  },
+  "decision_threshold": 0.56,
+  "threshold_objective": {
+    "priority": "favor overall accuracy and fake-class F1 while keeping real false positives controlled",
+    "max_real_fpr_target": 0.2
+  },
+  "validation": {
+    "threshold": 0.56,
+    "accuracy": 0.7531,
+    "precision_fake": 0.8051,
+    "recall_fake": 0.6637,
+    "specificity_real": 0.8414,
+    "false_positive_rate_real": 0.1586,
+    "false_negative_rate_fake": 0.3363,
+    "f1_fake": 0.7276,
+    "roc_auc_fake": 0.8372,
+    "confusion_matrix": [
+      [
+        892,
+        452
+      ],
+      [
+        216,
+        1146
+      ]
+    ],
+    "support": {
+      "fake": 1344,
+      "real": 1362
+    },
+    "face_detection_rate": 0.316,
+    "by_source": {
+      "archive1": {
+        "threshold": 0.56,
+        "accuracy": 0.7679,
+        "precision_fake": 0.8417,
+        "recall_fake": 0.66,
+        "specificity_real": 0.8758,
+        "false_positive_rate_real": 0.1242,
+        "false_negative_rate_fake": 0.34,
+        "f1_fake": 0.7398,
+        "roc_auc_fake": 0.8571,
+        "confusion_matrix": [
+          [
+            792,
+            408
+          ],
+          [
+            149,
+            1051
+          ]
+        ],
+        "support": {
+          "fake": 1200,
+          "real": 1200
+        }
+      },
+      "real_and_fake_face": {
+        "threshold": 0.56,
+        "accuracy": 0.6373,
+        "precision_fake": 0.5988,
+        "recall_fake": 0.6944,
+        "specificity_real": 0.5864,
+        "false_positive_rate_real": 0.4136,
+        "false_negative_rate_fake": 0.3056,
+        "f1_fake": 0.6431,
+        "roc_auc_fake": 0.6328,
+        "confusion_matrix": [
+          [
+            100,
+            44
+          ],
+          [
+            67,
+            95
+          ]
+        ],
+        "support": {
+          "fake": 144,
+          "real": 162
+        }
+      }
+    },
+    "by_media_kind": {
+      "image": {
+        "threshold": 0.56,
+        "accuracy": 0.7531,
+        "precision_fake": 0.8051,
+        "recall_fake": 0.6637,
+        "specificity_real": 0.8414,
+        "false_positive_rate_real": 0.1586,
+        "false_negative_rate_fake": 0.3363,
+        "f1_fake": 0.7276,
+        "roc_auc_fake": 0.8372,
+        "confusion_matrix": [
+          [
+            892,
+            452
+          ],
+          [
+            216,
+            1146
+          ]
+        ],
+        "support": {
+          "fake": 1344,
+          "real": 1362
+        }
+      }
+    }
+  },
+  "test": {
+    "threshold": 0.56,
+    "accuracy": 0.694,
+    "precision_fake": 0.7643,
+    "recall_fake": 0.5551,
+    "specificity_real": 0.8311,
+    "false_positive_rate_real": 0.1689,
+    "false_negative_rate_fake": 0.4449,
+    "f1_fake": 0.6431,
+    "roc_auc_fake": 0.7845,
+    "confusion_matrix": [
+      [
+        746,
+        598
+      ],
+      [
+        230,
+        1132
+      ]
+    ],
+    "support": {
+      "fake": 1344,
+      "real": 1362
+    },
+    "face_detection_rate": 0.2591,
+    "by_source": {
+      "archive1": {
+        "threshold": 0.56,
+        "accuracy": 0.7154,
+        "precision_fake": 0.8187,
+        "recall_fake": 0.5533,
+        "specificity_real": 0.8775,
+        "false_positive_rate_real": 0.1225,
+        "false_negative_rate_fake": 0.4467,
+        "f1_fake": 0.6604,
+        "roc_auc_fake": 0.8095,
+        "confusion_matrix": [
+          [
+            664,
+            536
+          ],
+          [
+            147,
+            1053
+          ]
+        ],
+        "support": {
+          "fake": 1200,
+          "real": 1200
+        }
+      },
+      "real_and_fake_face": {
+        "threshold": 0.56,
+        "accuracy": 0.5261,
+        "precision_fake": 0.497,
+        "recall_fake": 0.5694,
+        "specificity_real": 0.4877,
+        "false_positive_rate_real": 0.5123,
+        "false_negative_rate_fake": 0.4306,
+        "f1_fake": 0.5307,
+        "roc_auc_fake": 0.5285,
+        "confusion_matrix": [
+          [
+            82,
+            62
+          ],
+          [
+            83,
+            79
+          ]
+        ],
+        "support": {
+          "fake": 144,
+          "real": 162
+        }
+      }
+    },
+    "by_media_kind": {
+      "image": {
+        "threshold": 0.56,
+        "accuracy": 0.694,
+        "precision_fake": 0.7643,
+        "recall_fake": 0.5551,
+        "specificity_real": 0.8311,
+        "false_positive_rate_real": 0.1689,
+        "false_negative_rate_fake": 0.4449,
+        "f1_fake": 0.6431,
+        "roc_auc_fake": 0.7845,
+        "confusion_matrix": [
+          [
+            746,
+            598
+          ],
+          [
+            230,
+            1132
+          ]
+        ],
+        "support": {
+          "fake": 1344,
+          "real": 1362
+        }
+      }
+    }
+  },
+  "error_examples": {
+    "top_false_positives_real_as_fake": [
+      {
+        "path": "code\\data\\archive1\\1000_videos\\test\\real\\094_13.png",
+        "source": "archive1",
+        "media_kind": "image",
+        "fake_score": 0.996,
+        "predicted_label": "training_fake"
+      },
+      {
+        "path": "code\\data\\archive1\\1000_videos\\test\\real\\094_8.png",
+        "source": "archive1",
+        "media_kind": "image",
+        "fake_score": 0.995,
+        "predicted_label": "training_fake"
+      },
+      {
+        "path": "code\\data\\archive1\\1000_videos\\test\\real\\094_21.png",
+        "source": "archive1",
+        "media_kind": "image",
+        "fake_score": 0.9899,
+        "predicted_label": "training_fake"
+      },
+      {
+        "path": "code\\data\\archive1\\1000_videos\\test\\real\\094_18.png",
+        "source": "archive1",
+        "media_kind": "image",
+        "fake_score": 0.9881,
+        "predicted_label": "training_fake"
+      },
+      {
+        "path": "code\\data\\archive1\\1000_videos\\test\\real\\094_14.png",
+        "source": "archive1",
+        "media_kind": "image",
+        "fake_score": 0.9881,
+        "predicted_label": "training_fake"
+      },
+      {
+        "path": "code\\data\\archive1\\1000_videos\\test\\real\\094_19.png",
+        "source": "archive1",
+        "media_kind": "image",
+        "fake_score": 0.9838,
+        "predicted_label": "training_fake"
+      },
+      {
+        "path": "code\\data\\archive1\\1000_videos\\test\\real\\094_2.png",
+        "source": "archive1",
+        "media_kind": "image",
+        "fake_score": 0.9836,
+        "predicted_label": "training_fake"
+      },
+      {
+        "path": "code\\data\\archive1\\1000_videos\\test\\real\\094_17.png",
+        "source": "archive1",
+        "media_kind": "image",
+        "fake_score": 0.9811,
+        "predicted_label": "training_fake"
+      },
+      {
+        "path": "code\\data\\archive1\\1000_videos\\test\\real\\094_10.png",
+        "source": "archive1",
+        "media_kind": "image",
+        "fake_score": 0.9807,
+        "predicted_label": "training_fake"
+      },
+      {
+        "path": "code\\data\\archive1\\1000_videos\\test\\real\\094_16.png",
+        "source": "archive1",
+        "media_kind": "image",
+        "fake_score": 0.9793,
+        "predicted_label": "training_fake"
+      }
+    ],
+    "top_false_negatives_fake_as_real": [
+      {
+        "path": "code\\data\\archive1\\1000_videos\\test\\fake\\068_028_6.png",
+        "source": "archive1",
+        "media_kind": "image",
+        "fake_score": 0.0073,
+        "predicted_label": "training_real"
+      },
+      {
+        "path": "code\\data\\archive1\\1000_videos\\test\\fake\\123_119_10.png",
+        "source": "archive1",
+        "media_kind": "image",
+        "fake_score": 0.0077,
+        "predicted_label": "training_real"
+      },
+      {
+        "path": "code\\data\\archive1\\1000_videos\\test\\fake\\068_028_7.png",
+        "source": "archive1",
+        "media_kind": "image",
+        "fake_score": 0.009,
+        "predicted_label": "training_real"
+      },
+      {
+        "path": "code\\data\\archive1\\1000_videos\\test\\fake\\103_082_22.png",
+        "source": "archive1",
+        "media_kind": "image",
+        "fake_score": 0.0122,
+        "predicted_label": "training_real"
+      },
+      {
+        "path": "code\\data\\archive1\\1000_videos\\test\\fake\\115_939_4.png",
+        "source": "archive1",
+        "media_kind": "image",
+        "fake_score": 0.0142,
+        "predicted_label": "training_real"
+      },
+      {
+        "path": "code\\data\\archive1\\1000_videos\\test\\fake\\068_028_12.png",
+        "source": "archive1",
+        "media_kind": "image",
+        "fake_score": 0.0155,
+        "predicted_label": "training_real"
+      },
+      {
+        "path": "code\\data\\archive1\\1000_videos\\test\\fake\\093_121_2.png",
+        "source": "archive1",
+        "media_kind": "image",
+        "fake_score": 0.0181,
+        "predicted_label": "training_real"
+      },
+      {
+        "path": "code\\data\\archive1\\1000_videos\\test\\fake\\123_119_4.png",
+        "source": "archive1",
+        "media_kind": "image",
+        "fake_score": 0.0197,
+        "predicted_label": "training_real"
+      },
+      {
+        "path": "code\\data\\archive1\\1000_videos\\test\\fake\\077_100_20.png",
+        "source": "archive1",
+        "media_kind": "image",
+        "fake_score": 0.0198,
+        "predicted_label": "training_real"
+      },
+      {
+        "path": "code\\data\\archive1\\1000_videos\\test\\fake\\117_217_9.png",
+        "source": "archive1",
+        "media_kind": "image",
+        "fake_score": 0.0226,
+        "predicted_label": "training_real"
+      }
+    ]
+  }
+}

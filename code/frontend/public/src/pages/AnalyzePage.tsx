@@ -1,14 +1,67 @@
-import { useState, useRef } from 'react';
-import { Upload, FileVideo, FileImage, Loader2, AlertCircle } from 'lucide-react';
+import { useRef, useState } from 'react';
+import {
+  AlertCircle,
+  CheckCircle2,
+  FileImage,
+  FileVideo,
+  Loader2,
+  Shield,
+  Upload,
+  Zap,
+} from 'lucide-react';
+import { analyzeMedia, buildAnalysisResult, getApiOrigin } from '../services/api';
+import type { AnalysisResult } from '../types/analysis';
 
 interface AnalyzePageProps {
-  onNavigate: (page: string, data?: any) => void;
+  onNavigate: (page: string, data?: AnalysisResult) => void;
+}
+
+const VALID_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'video/mp4',
+  'video/quicktime',
+  'video/webm',
+  'video/x-msvideo',
+  'video/x-matroska',
+];
+
+const VALID_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.mp4', '.mov', '.webm', '.avi', '.mkv'];
+const MAX_SIZE_BYTES = 50 * 1024 * 1024;
+
+function formatFileSize(size: number) {
+  return `${(size / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function getFileMediaKind(file: File | null) {
+  if (!file) {
+    return null;
+  }
+
+  if (file.type.startsWith('image/')) {
+    return 'image';
+  }
+  if (file.type.startsWith('video/')) {
+    return 'video';
+  }
+
+  const lowerName = file.name.toLowerCase();
+  if (VALID_EXTENSIONS.slice(0, 4).some((extension) => lowerName.endsWith(extension))) {
+    return 'image';
+  }
+  if (VALID_EXTENSIONS.slice(4).some((extension) => lowerName.endsWith(extension))) {
+    return 'video';
+  }
+
+  return null;
 }
 
 export function AnalyzePage({ onNavigate }: AnalyzePageProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDragEnter = (e: React.DragEvent) => {
@@ -21,31 +74,33 @@ export function AnalyzePage({ onNavigate }: AnalyzePageProps) {
     setIsDragging(false);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-      handleFileSelect(files[0]);
-    }
-  };
-
   const handleFileSelect = (file: File) => {
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/quicktime'];
-    const maxSize = 50 * 1024 * 1024; // 50MB
+    const hasValidExtension = VALID_EXTENSIONS.some((extension) =>
+      file.name.toLowerCase().endsWith(extension)
+    );
 
-    if (!validTypes.includes(file.type)) {
-      alert('Please upload a valid file type (JPG, PNG, WEBP, MP4, MOV)');
+    if (!VALID_TYPES.includes(file.type) && !hasValidExtension) {
+      setErrorMessage('Use JPG, PNG, WEBP, MP4, MOV, WEBM, AVI, or MKV files.');
       return;
     }
 
-    if (file.size > maxSize) {
-      alert('File size must be less than 50MB');
+    if (file.size > MAX_SIZE_BYTES) {
+      setErrorMessage('File size must stay under 50MB.');
       return;
     }
 
     setSelectedFile(file);
+    setErrorMessage(null);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleFileSelect(files[0]);
+    }
   };
 
   const handleBrowseClick = () => {
@@ -63,173 +118,194 @@ export function AnalyzePage({ onNavigate }: AnalyzePageProps) {
     if (!selectedFile) return;
 
     setIsAnalyzing(true);
-    
+    setErrorMessage(null);
+
     try {
-      // Send file to backend API
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-      
-      const response = await fetch('http://127.0.0.1:8000/analyze', {
-        method: 'POST',
-        body: formData
-      });
-
-      if (!response.ok) {
-        throw new Error('Analysis failed');
+      const apiResult = await analyzeMedia(selectedFile);
+      const result = buildAnalysisResult(selectedFile, apiResult);
+      if (result.mediaType === 'image') {
+        result.sourceObjectUrl = URL.createObjectURL(selectedFile);
       }
-
-      const apiResult = await response.json();
-      
-      const result = {
-        fileName: selectedFile.name,
-        fileType: selectedFile.type,
-        fileSize: selectedFile.size,
-        label: apiResult.label as 'Real' | 'Fake',
-        confidence: apiResult.confidence * 100, // Convert to percentage
-        timestamp: new Date().toISOString(),
-        analysis: {
-          facialArtifacts: apiResult.label === 'Fake' ? 'Detected' : 'None',
-          audioSync: selectedFile.type.startsWith('video') ? (apiResult.label === 'Fake' ? 'Inconsistent' : 'Consistent') : 'N/A',
-          noisePatterns: apiResult.label === 'Fake' ? 'Anomalous' : 'Natural',
-          compression: 'Normal'
-        }
-      };
-
-      // Save to localStorage history
-      const historyItem = {
-        id: Date.now().toString(),
-        fileName: selectedFile.name,
-        fileType: selectedFile.type,
-        timestamp: result.timestamp,
-        result: result.label,
-        confidence: result.confidence
-      };
-
-      const existingHistory = JSON.parse(localStorage.getItem('pixelproof_history') || '[]');
-      const updatedHistory = [historyItem, ...existingHistory];
-      localStorage.setItem('pixelproof_history', JSON.stringify(updatedHistory));
-
-      setIsAnalyzing(false);
       onNavigate('results', result);
     } catch (error) {
       console.error('Analysis error:', error);
-      alert('Error analyzing file. Make sure the backend is running at http://127.0.0.1:8000');
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : `Analysis failed. Make sure the server is running at ${getApiOrigin()}.`
+      );
+    } finally {
       setIsAnalyzing(false);
     }
   };
 
-  const isImage = selectedFile?.type.startsWith('image');
-  const isVideo = selectedFile?.type.startsWith('video');
+  const mediaKind = getFileMediaKind(selectedFile);
+  const isImage = mediaKind === 'image';
+  const isVideo = mediaKind === 'video';
 
   return (
     <div className="container mx-auto px-6 py-16 min-h-screen">
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            Analyze Media for{' '}
-            <span className="bg-gradient-to-r from-[#00D9FF] to-[#9333EA] bg-clip-text text-transparent">
-              Deepfakes
-            </span>
-          </h1>
-          <p className="text-xl text-gray-300">
-            Upload your image or video to detect manipulation using our advanced AI models.
-          </p>
-        </div>
-
-        {/* Upload Area */}
-        <div
-          onDragEnter={handleDragEnter}
-          onDragOver={(e) => e.preventDefault()}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          className={`relative p-16 rounded-2xl border-2 border-dashed transition-all ${
-            isDragging
-              ? 'border-[#00D9FF] bg-[#00D9FF]/5'
-              : 'border-gray-600 hover:border-[#00D9FF]/50'
-          }`}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".jpg,.jpeg,.png,.webp,.mp4,.mov"
-            onChange={handleFileInputChange}
-            className="hidden"
-          />
-
-          <div className="flex flex-col items-center justify-center text-center">
-            <div className="w-16 h-16 rounded-full bg-[#00D9FF]/10 flex items-center justify-center mb-6">
-              <Upload className="w-8 h-8 text-[#00D9FF]" />
+      <div className="max-w-6xl mx-auto">
+        <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-8 mb-10 items-start">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#00D9FF]/20 bg-[#00D9FF]/10 px-4 py-2 text-sm text-[#8CEBFF] mb-5">
+              <Shield className="w-4 h-4" />
+              Detection workflow
             </div>
-            <h3 className="text-2xl font-bold mb-2">Drag & Drop media</h3>
-            <p className="text-gray-400 mb-6">
-              Supports JPG, PNG, WEBP, MP4, MOV (Max 50MB)
+            <h1 className="text-4xl md:text-6xl font-bold mb-5 leading-tight">
+              Analyze media for{' '}
+              <span className="bg-gradient-to-r from-[#00D9FF] to-[#9333EA] bg-clip-text text-transparent">
+                deepfake signals
+              </span>
+            </h1>
+            <p className="text-lg text-gray-300 leading-relaxed max-w-2xl">
+              Upload an image or short-form video, review the result surface, and keep the outcome
+              in persistent analysis history so the workflow stays easy to revisit after
+              deployment.
             </p>
-            <button 
-              onClick={handleBrowseClick}
-              className="bg-[#00D9FF] hover:bg-[#00C4E6] text-black px-8 py-3 rounded-lg font-semibold transition-all hover:shadow-lg hover:shadow-cyan-500/50"
-            >
-              Browse Files
-            </button>
+          </div>
+
+          <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#111827]/85 to-[#1F2937]/75 backdrop-blur-md p-7">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-11 h-11 rounded-2xl bg-[#00D9FF]/10 border border-[#00D9FF]/20 flex items-center justify-center">
+                <Zap className="w-5 h-5 text-[#00D9FF]" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold">Before you upload</h2>
+                <p className="text-sm text-gray-400">A few quick checks keep results cleaner.</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {[
+                'Use JPG, PNG, WEBP, MP4, MOV, WEBM, AVI, or MKV files.',
+                'Keep uploads under 50MB for the current app flow.',
+                'Higher-quality source media usually produces more useful forensic cues.',
+                'Treat the model result as guidance, not standalone proof.',
+              ].map((item) => (
+                <div key={item} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-4">
+                  <CheckCircle2 className="w-5 h-5 text-[#00D9FF] flex-shrink-0 mt-0.5" />
+                  <p className="text-gray-300 leading-relaxed">{item}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Selected File Preview */}
-        {selectedFile && (
-          <div className="mt-8 p-6 rounded-xl bg-gradient-to-br from-[#111827]/80 to-[#1F2937]/80 backdrop-blur-md border border-white/10">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-lg bg-[#00D9FF]/10 flex items-center justify-center flex-shrink-0">
-                {isImage && <FileImage className="w-6 h-6 text-[#00D9FF]" />}
-                {isVideo && <FileVideo className="w-6 h-6 text-[#00D9FF]" />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="font-semibold text-lg mb-1 truncate">{selectedFile.name}</h4>
-                <p className="text-sm text-gray-400">
-                  {selectedFile.type} • {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+        <div className="grid lg:grid-cols-[1.15fr_0.85fr] gap-8 items-start">
+          <div>
+            <div
+              onDragEnter={handleDragEnter}
+              onDragOver={(e) => e.preventDefault()}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`relative rounded-[32px] border-2 border-dashed p-10 md:p-14 transition-all ${
+                isDragging
+                  ? 'border-[#00D9FF] bg-[#00D9FF]/10 shadow-lg shadow-cyan-500/10'
+                  : 'border-white/15 bg-gradient-to-br from-[#111827]/85 to-[#1F2937]/80 hover:border-[#00D9FF]/35'
+              }`}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".jpg,.jpeg,.png,.webp,.mp4,.mov,.webm,.avi,.mkv"
+                onChange={handleFileInputChange}
+                className="hidden"
+              />
+
+              <div className="flex flex-col items-center justify-center text-center">
+                <div className="w-20 h-20 rounded-full bg-[#00D9FF]/10 border border-[#00D9FF]/20 flex items-center justify-center mb-6">
+                  <Upload className="w-9 h-9 text-[#00D9FF]" />
+                </div>
+                <h3 className="text-3xl font-bold mb-3">Drag and drop your media</h3>
+                <p className="text-gray-400 max-w-xl mb-8 leading-relaxed">
+                  Use the upload zone for quick checks, or browse manually if you are pulling files
+                  from a larger review workflow.
+                </p>
+                <button
+                  onClick={handleBrowseClick}
+                  className="bg-[#00D9FF] hover:bg-[#00C4E6] text-black px-8 py-3 rounded-2xl font-semibold transition-all hover:shadow-lg hover:shadow-cyan-500/35"
+                >
+                  Browse files
+                </button>
+                <p className="text-sm text-gray-500 mt-5">
+                  JPG, PNG, WEBP, MP4, MOV, WEBM, AVI, MKV up to 50MB
                 </p>
               </div>
-              <button
-                onClick={handleAnalyze}
-                disabled={isAnalyzing}
-                className="bg-[#00D9FF] hover:bg-[#00C4E6] text-black px-6 py-2 rounded-lg font-semibold transition-all hover:shadow-lg hover:shadow-cyan-500/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  'Analyze'
-                )}
-              </button>
             </div>
-          </div>
-        )}
 
-        {/* Info Cards */}
-        <div className="grid md:grid-cols-3 gap-6 mt-12">
-          <div className="p-6 rounded-xl bg-gradient-to-br from-[#111827]/80 to-[#1F2937]/80 backdrop-blur-md border border-white/10">
-            <div className="text-3xl font-bold text-[#00D9FF] mb-2">&lt;3s</div>
-            <p className="text-gray-400">Average analysis time per file</p>
+            {errorMessage && (
+              <div className="mt-5 rounded-2xl border border-red-500/25 bg-red-500/10 px-5 py-4 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-red-300 flex-shrink-0 mt-0.5" />
+                <p className="text-red-100">{errorMessage}</p>
+              </div>
+            )}
           </div>
-          <div className="p-6 rounded-xl bg-gradient-to-br from-[#111827]/80 to-[#1F2937]/80 backdrop-blur-md border border-white/10">
-            <div className="text-3xl font-bold text-[#00D9FF] mb-2">99.8%</div>
-            <p className="text-gray-400">Detection accuracy on test dataset</p>
-          </div>
-          <div className="p-6 rounded-xl bg-gradient-to-br from-[#111827]/80 to-[#1F2937]/80 backdrop-blur-md border border-white/10">
-            <div className="text-3xl font-bold text-[#00D9FF] mb-2">100%</div>
-            <p className="text-gray-400">Your data privacy guaranteed</p>
-          </div>
-        </div>
 
-        {/* Privacy Notice */}
-        <div className="mt-8 p-6 rounded-xl bg-blue-500/10 border border-blue-500/30 flex gap-4">
-          <AlertCircle className="w-6 h-6 text-blue-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <h4 className="font-semibold mb-1 text-blue-300">Privacy First</h4>
-            <p className="text-sm text-gray-300">
-              All uploaded files are processed securely on our servers and permanently deleted immediately after analysis. We do not store or share your media.
-            </p>
+          <div className="space-y-6">
+            <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#111827]/85 to-[#1F2937]/80 backdrop-blur-md p-7">
+              <div className="text-sm uppercase tracking-[0.25em] text-gray-400 mb-4">
+                Current Selection
+              </div>
+
+              {selectedFile ? (
+                <div className="space-y-5">
+                  <div className="flex items-start gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-[#00D9FF]/10 border border-[#00D9FF]/20 flex items-center justify-center flex-shrink-0">
+                      {isImage && <FileImage className="w-6 h-6 text-[#00D9FF]" />}
+                      {isVideo && <FileVideo className="w-6 h-6 text-[#00D9FF]" />}
+                      {!isImage && !isVideo && <Upload className="w-6 h-6 text-[#00D9FF]" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-xl font-bold truncate mb-2">{selectedFile.name}</h3>
+                      <div className="flex flex-wrap gap-2 text-sm text-gray-400">
+                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                          {selectedFile.type || `${mediaKind ?? 'unknown'} file`}
+                        </span>
+                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                          {formatFileSize(selectedFile.size)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleAnalyze}
+                    disabled={isAnalyzing}
+                    className="w-full bg-[#00D9FF] hover:bg-[#00C4E6] text-black px-6 py-3 rounded-2xl font-semibold transition-all hover:shadow-lg hover:shadow-cyan-500/35 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Analyzing...
+                      </>
+                    ) : (
+                      'Run analysis'
+                    )}
+                  </button>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-white/10 bg-black/20 px-5 py-6 text-gray-400 leading-relaxed">
+                  No file selected yet. Pick a file to unlock the scan action and move straight into
+                  the results view.
+                </div>
+              )}
+            </div>
+
+            <div className="grid sm:grid-cols-3 lg:grid-cols-1 gap-4">
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-5">
+                <div className="text-2xl font-bold text-[#00D9FF] mb-2">1 app</div>
+                <p className="text-gray-400 text-sm">Frontend and backend now feel like one product.</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-5">
+                <div className="text-2xl font-bold text-[#00D9FF] mb-2">50MB</div>
+                <p className="text-gray-400 text-sm">Per-upload limit for the current local workflow.</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-5">
+                <div className="text-2xl font-bold text-[#00D9FF] mb-2">SQLite history</div>
+                <p className="text-gray-400 text-sm">Revisit recent checks from the backend after deployment.</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>

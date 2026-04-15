@@ -1,5 +1,16 @@
-import { Code, Copy, Check, Key, Zap, Shield, BookOpen } from 'lucide-react';
+import {
+  AlertTriangle,
+  BookOpen,
+  Check,
+  ChevronRight,
+  Code,
+  Copy,
+  Key,
+  Shield,
+  Zap,
+} from 'lucide-react';
 import { useState } from 'react';
+import { getApiOrigin } from '../services/api';
 
 interface APIDocsPageProps {
   onNavigate: (page: string) => void;
@@ -7,362 +18,352 @@ interface APIDocsPageProps {
 
 export function APIDocsPage({ onNavigate }: APIDocsPageProps) {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const apiOrigin = getApiOrigin();
+  const analyzeUrl = `${apiOrigin}/analyze`;
+  const analysesUrl = `${apiOrigin}/analyses`;
+  const docsUrl = `${apiOrigin}/docs`;
+  const healthUrl = `${apiOrigin}/health`;
+  const verifyReportUrl = `${apiOrigin}/verify-report`;
 
-  const handleCopy = (code: string, id: string) => {
-    navigator.clipboard.writeText(code);
-    setCopiedCode(id);
-    setTimeout(() => setCopiedCode(null), 2000);
+  const handleCopy = async (code: string, id: string) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopiedCode(id);
+      setTimeout(() => setCopiedCode(null), 2000);
+    } catch (error) {
+      console.error('Copy failed:', error);
+    }
   };
 
-  const curlExample = `curl -X POST https://api.pixelproof.ai/v1/analyze \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -H "Content-Type: multipart/form-data" \\
+  const curlExample = `curl -X POST ${analyzeUrl} \\
   -F "file=@/path/to/media.jpg"`;
 
   const pythonExample = `import requests
 
-url = "https://api.pixelproof.ai/v1/analyze"
-headers = {
-    "Authorization": "Bearer YOUR_API_KEY"
-}
+url = "${analyzeUrl}"
 files = {
     "file": open("media.jpg", "rb")
 }
 
-response = requests.post(url, headers=headers, files=files)
+response = requests.post(url, files=files)
+response.raise_for_status()
 result = response.json()
 
-print(f"Result: {result['label']}")
-print(f"Confidence: {result['confidence']}%")`;
+print(result["label"], result["confidence"])`;
 
   const javascriptExample = `const formData = new FormData();
-formData.append('file', fileInput.files[0]);
+formData.append("file", fileInput.files[0]);
 
-const response = await fetch('https://api.pixelproof.ai/v1/analyze', {
-  method: 'POST',
-  headers: {
-    'Authorization': 'Bearer YOUR_API_KEY'
-  },
+const response = await fetch("${analyzeUrl}", {
+  method: "POST",
   body: formData
 });
 
+if (!response.ok) throw new Error("Analyze failed");
 const result = await response.json();
-console.log(\`Result: \${result.label}\`);
-console.log(\`Confidence: \${result.confidence}%\`);`;
+console.log(result);`;
+
+  const verifyExample = `curl -X POST ${verifyReportUrl} \\
+  -H "Content-Type: application/json" \\
+  -d @signed-report.json`;
 
   const responseExample = `{
-  "success": true,
-  "timestamp": "2024-02-04T10:30:45Z",
-  "analysis_time_ms": 2847,
-  "file_info": {
-    "filename": "example.jpg",
-    "type": "image/jpeg",
-    "size_bytes": 2458624
+  "analysis_id": "pp_a1b2c3d4e5f6",
+  "created_at": "2026-04-14T00:46:08.302891+00:00",
+  "media_type": "image",
+  "filename": "example.jpg",
+  "content_type": "image/jpeg",
+  "label": "Fake",
+  "confidence": 0.982,
+  "scores": {
+    "fake": 0.982,
+    "real": 0.018
   },
-  "result": {
-    "label": "Fake",
-    "confidence": 92.7,
-    "details": {
-      "facial_artifacts": "Detected",
-      "audio_sync": "N/A",
-      "noise_patterns": "Anomalous",
-      "compression": "Normal"
+  "processing_ms": 2412,
+  "model": {
+    "name": "MobileNetV2 Forensics Classifier",
+    "source": "weights",
+    "input_size": [96, 96],
+    "fake_threshold": 0.95
+  },
+  "details": {
+    "strategy": "single-frame image classification",
+    "frames_sampled": 1,
+    "suspicious_frame_ratio": 1.0,
+    "decision_basis": "fake_score_above_threshold"
+  },
+  "warnings": [],
+  "report": {
+    "version": 1,
+    "algorithm": "HMAC-SHA256",
+    "signature": "2a9c4f...f6f9",
+    "verify_endpoint": "/verify-report",
+    "payload": {
+      "analysis_id": "pp_a1b2c3d4e5f6",
+      "label": "Fake",
+      "confidence": 0.927
     }
-  },
-  "model_version": "v2.0.3"
+  }
 }`;
 
   return (
     <div className="container mx-auto px-6 py-16 min-h-screen">
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            API{' '}
-            <span className="bg-gradient-to-r from-[#00D9FF] to-[#9333EA] bg-clip-text text-transparent">
-              Documentation
-            </span>
-          </h1>
-          <p className="text-xl text-gray-300">
-            Integrate PixelProof deepfake detection into your applications
-          </p>
-        </div>
+      <div className="max-w-6xl mx-auto">
+        <div className="grid lg:grid-cols-[1.05fr_0.95fr] gap-8 items-start mb-12">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#00D9FF]/20 bg-[#00D9FF]/10 px-4 py-2 text-sm text-[#8CEBFF] mb-5">
+              <Code className="w-4 h-4" />
+              Local API reference
+            </div>
+            <h1 className="text-4xl md:text-6xl font-bold mb-5">
+              API{' '}
+              <span className="bg-gradient-to-r from-[#00D9FF] to-[#9333EA] bg-clip-text text-transparent">
+                documentation
+              </span>
+            </h1>
+            <p className="text-lg text-gray-300 leading-relaxed max-w-2xl">
+              The website and API run together as one application. That keeps deployment simpler
+              and gives the product one backend for uploads, signed reports, and stored analysis
+              history.
+            </p>
+          </div>
 
-        {/* Quick Stats */}
-        <div className="grid md:grid-cols-3 gap-6 mb-12">
-          <div className="p-6 rounded-xl bg-gradient-to-br from-[#111827]/80 to-[#1F2937]/80 backdrop-blur-md border border-white/10">
-            <Zap className="w-8 h-8 text-[#00D9FF] mb-3" />
-            <div className="text-2xl font-bold text-[#00D9FF] mb-1">&lt;3s</div>
-            <div className="text-sm text-gray-400">Average Response Time</div>
-          </div>
-          <div className="p-6 rounded-xl bg-gradient-to-br from-[#111827]/80 to-[#1F2937]/80 backdrop-blur-md border border-white/10">
-            <Shield className="w-8 h-8 text-[#00D9FF] mb-3" />
-            <div className="text-2xl font-bold text-[#00D9FF] mb-1">99.9%</div>
-            <div className="text-sm text-gray-400">API Uptime</div>
-          </div>
-          <div className="p-6 rounded-xl bg-gradient-to-br from-[#111827]/80 to-[#1F2937]/80 backdrop-blur-md border border-white/10">
-            <BookOpen className="w-8 h-8 text-[#00D9FF] mb-3" />
-            <div className="text-2xl font-bold text-[#00D9FF] mb-1">100/mo</div>
-            <div className="text-sm text-gray-400">Free Tier Requests</div>
-          </div>
-        </div>
-
-        {/* Getting Started */}
-        <section className="mb-12">
-          <h2 className="text-3xl font-bold mb-6">Getting Started</h2>
-          
-          <div className="p-6 rounded-xl bg-gradient-to-br from-[#111827]/80 to-[#1F2937]/80 backdrop-blur-md border border-white/10 mb-6">
-            <div className="flex items-start gap-4">
-              <Key className="w-6 h-6 text-[#00D9FF] flex-shrink-0 mt-1" />
-              <div>
-                <h3 className="text-xl font-bold mb-2">Authentication</h3>
-                <p className="text-gray-300 mb-4">
-                  All API requests require authentication using an API key. Include your API key in the <code className="px-2 py-1 bg-black/30 rounded text-[#00D9FF]">Authorization</code> header:
-                </p>
-                <code className="block p-3 bg-black/30 rounded text-sm text-[#00D9FF]">
-                  Authorization: Bearer YOUR_API_KEY
-                </code>
-                <p className="text-sm text-gray-400 mt-3">
-                  Get your API key from the dashboard (coming soon) or contact sales for enterprise access.
-                </p>
+          <div className="rounded-[32px] border border-white/10 bg-gradient-to-br from-[#111827]/85 to-[#1F2937]/75 p-8">
+            <div className="grid gap-4">
+              <div className="rounded-2xl border border-white/10 bg-black/20 px-5 py-4">
+                <div className="text-sm text-gray-400 mb-1">Base URL</div>
+                <div className="font-semibold break-all">{apiOrigin}</div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-black/20 px-5 py-4">
+                <div className="text-sm text-gray-400 mb-1">Analyze endpoint</div>
+                <div className="font-semibold break-all">{analyzeUrl}</div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-black/20 px-5 py-4">
+                <div className="text-sm text-gray-400 mb-1">History endpoint</div>
+                <div className="font-semibold break-all">{analysesUrl}</div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-black/20 px-5 py-4">
+                <div className="text-sm text-gray-400 mb-1">Interactive docs</div>
+                <div className="font-semibold break-all">{docsUrl}</div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-black/20 px-5 py-4">
+                <div className="text-sm text-gray-400 mb-1">Health check</div>
+                <div className="font-semibold break-all">{healthUrl}</div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-black/20 px-5 py-4">
+                <div className="text-sm text-gray-400 mb-1">Report verification</div>
+                <div className="font-semibold break-all">{verifyReportUrl}</div>
               </div>
             </div>
           </div>
+        </div>
 
-          <div className="p-6 rounded-xl bg-blue-500/10 border border-blue-500/30">
-            <h4 className="font-semibold mb-2 text-blue-300">Base URL</h4>
-            <code className="text-sm text-gray-300">https://api.pixelproof.ai/v1</code>
+        <div className="grid md:grid-cols-3 gap-6 mb-12">
+          <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#111827]/80 to-[#1F2937]/75 p-6">
+            <Zap className="w-8 h-8 text-[#00D9FF] mb-4" />
+            <div className="text-xl font-bold mb-2">Simple request model</div>
+            <p className="text-gray-400 leading-relaxed">
+              Send one multipart upload to <code className="text-[#00D9FF]">/analyze</code> and
+              get back a structured JSON response.
+            </p>
+          </div>
+          <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#111827]/80 to-[#1F2937]/75 p-6">
+            <Shield className="w-8 h-8 text-[#00D9FF] mb-4" />
+            <div className="text-xl font-bold mb-2">Signed report flow</div>
+            <p className="text-gray-400 leading-relaxed">
+              Results now include a server-side signature so exported reports can be verified later
+              for integrity using the local API.
+            </p>
+          </div>
+          <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#111827]/80 to-[#1F2937]/75 p-6">
+            <BookOpen className="w-8 h-8 text-[#00D9FF] mb-4" />
+            <div className="text-xl font-bold mb-2">Structured output</div>
+            <p className="text-gray-400 leading-relaxed">
+              Responses include label, confidence, scores, processing time, model metadata,
+              history-safe report bundles, and media-specific details.
+            </p>
+          </div>
+        </div>
+
+        <section className="mb-12 rounded-[32px] border border-white/10 bg-gradient-to-br from-[#111827]/85 to-[#1F2937]/75 p-8">
+          <div className="flex items-start gap-4 mb-6">
+            <Key className="w-6 h-6 text-[#00D9FF] flex-shrink-0 mt-1" />
+            <div>
+              <h2 className="text-3xl font-bold mb-2">Getting started</h2>
+              <p className="text-gray-300 leading-relaxed">
+                This local version does not require API key setup. Post a file directly to the
+                merged backend, then verify signed reports later if you need an integrity check.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="rounded-2xl border border-white/10 bg-black/20 px-5 py-5">
+              <div className="text-sm uppercase tracking-[0.22em] text-gray-400 mb-2">Request</div>
+              <div className="font-semibold mb-2">POST /analyze</div>
+              <p className="text-gray-400">Accepts one file field named <code className="text-[#00D9FF]">file</code>.</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-black/20 px-5 py-5">
+              <div className="text-sm uppercase tracking-[0.22em] text-gray-400 mb-2">History</div>
+              <div className="font-semibold mb-2">GET /analyses</div>
+              <p className="text-gray-400">Returns the most recent stored analyses from the SQLite-backed review history.</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-black/20 px-5 py-5">
+              <div className="text-sm uppercase tracking-[0.22em] text-gray-400 mb-2">Supported media</div>
+              <p className="text-gray-400">JPG, JPEG, PNG, WEBP, MP4, MOV, WEBM, AVI, and MKV up to 50MB.</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-black/20 px-5 py-5">
+              <div className="text-sm uppercase tracking-[0.22em] text-gray-400 mb-2">Verification</div>
+              <div className="font-semibold mb-2">POST /verify-report</div>
+              <p className="text-gray-400">Accepts the saved signed report JSON and checks whether its signature is still valid.</p>
+            </div>
           </div>
         </section>
 
-        {/* Endpoint */}
         <section className="mb-12">
-          <h2 className="text-3xl font-bold mb-6">Endpoints</h2>
-          
-          <div className="p-6 rounded-xl bg-gradient-to-br from-[#111827]/80 to-[#1F2937]/80 backdrop-blur-md border border-white/10">
-            <div className="flex items-start gap-4 mb-4">
-              <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded font-mono text-sm font-semibold">POST</span>
-              <code className="text-lg text-[#00D9FF] mt-0.5">/analyze</code>
-            </div>
-            <p className="text-gray-300 mb-4">
-              Analyze an image or video file for deepfake detection.
-            </p>
+          <h2 className="text-3xl font-bold mb-6">Code examples</h2>
 
-            {/* Parameters */}
-            <div className="mb-4">
-              <h4 className="font-semibold mb-3">Request Parameters</h4>
-              <div className="space-y-3">
-                <div className="p-3 bg-black/30 rounded">
-                  <div className="flex items-center gap-2 mb-1">
-                    <code className="text-[#00D9FF]">file</code>
-                    <span className="text-xs px-2 py-0.5 bg-red-500/20 text-red-400 rounded">required</span>
-                  </div>
-                  <p className="text-sm text-gray-400">
-                    The media file to analyze (JPG, PNG, WEBP, MP4, MOV). Max size: 50MB.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Response */}
-            <div>
-              <h4 className="font-semibold mb-3">Response</h4>
-              <div className="relative">
+          {[
+            ['curl', 'cURL', curlExample],
+            ['python', 'Python', pythonExample],
+            ['javascript', 'JavaScript', javascriptExample],
+          ].map(([id, label, code]) => (
+            <div key={id} className="mb-6 rounded-3xl border border-white/10 bg-gradient-to-br from-[#111827]/80 to-[#1F2937]/75 p-6">
+              <div className="flex items-center justify-between gap-4 mb-4">
+                <h3 className="text-xl font-bold flex items-center gap-2">
+                  <Code className="w-5 h-5 text-[#00D9FF]" />
+                  {label}
+                </h3>
                 <button
-                  onClick={() => handleCopy(responseExample, 'response')}
-                  className="absolute top-3 right-3 p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+                  onClick={() => handleCopy(code, id)}
+                  className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
                   title="Copy code"
                 >
-                  {copiedCode === 'response' ? (
+                  {copiedCode === id ? (
                     <Check className="w-4 h-4 text-green-400" />
                   ) : (
                     <Copy className="w-4 h-4 text-gray-400" />
                   )}
                 </button>
-                <pre className="p-4 bg-black/30 rounded overflow-x-auto text-sm">
-                  <code className="text-gray-300">{responseExample}</code>
-                </pre>
               </div>
+              <pre className="rounded-2xl bg-black/30 p-4 overflow-x-auto">
+                <code className="text-sm text-gray-300">{code}</code>
+              </pre>
             </div>
-          </div>
+          ))}
         </section>
 
-        {/* Code Examples */}
-        <section className="mb-12">
-          <h2 className="text-3xl font-bold mb-6">Code Examples</h2>
-          
-          {/* cURL */}
-          <div className="mb-6">
-            <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
-              <Code className="w-5 h-5 text-[#00D9FF]" />
-              cURL
-            </h3>
+        <section className="mb-12 rounded-[32px] border border-white/10 bg-gradient-to-br from-[#111827]/80 to-[#1F2937]/75 p-8">
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <Shield className="w-5 h-5 text-[#00D9FF]" />
+              Verify a saved report
+            </h2>
+            <button
+              onClick={() => handleCopy(verifyExample, 'verify')}
+              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
+              title="Copy code"
+            >
+              {copiedCode === 'verify' ? (
+                <Check className="w-4 h-4 text-green-400" />
+              ) : (
+                <Copy className="w-4 h-4 text-gray-400" />
+              )}
+            </button>
+          </div>
+          <pre className="rounded-2xl bg-black/30 p-4 overflow-x-auto">
+            <code className="text-sm text-gray-300">{verifyExample}</code>
+          </pre>
+        </section>
+
+        <div className="grid lg:grid-cols-[1fr_0.85fr] gap-8 mb-12">
+          <section className="rounded-[32px] border border-white/10 bg-gradient-to-br from-[#111827]/80 to-[#1F2937]/75 p-8">
+            <h2 className="text-3xl font-bold mb-6">Example response</h2>
             <div className="relative">
               <button
-                onClick={() => handleCopy(curlExample, 'curl')}
-                className="absolute top-3 right-3 p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors z-10"
-                title="Copy code"
+                onClick={() => handleCopy(responseExample, 'response')}
+                className="absolute top-3 right-3 p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
+                title="Copy response"
               >
-                {copiedCode === 'curl' ? (
+                {copiedCode === 'response' ? (
                   <Check className="w-4 h-4 text-green-400" />
                 ) : (
                   <Copy className="w-4 h-4 text-gray-400" />
                 )}
               </button>
-              <pre className="p-4 bg-black/30 rounded overflow-x-auto">
-                <code className="text-sm text-gray-300">{curlExample}</code>
+              <pre className="rounded-2xl bg-black/30 p-4 overflow-x-auto text-sm">
+                <code className="text-gray-300">{responseExample}</code>
               </pre>
+            </div>
+          </section>
+
+          <section className="rounded-[32px] border border-white/10 bg-gradient-to-br from-[#111827]/80 to-[#1F2937]/75 p-8">
+            <h2 className="text-3xl font-bold mb-6">Useful response fields</h2>
+            <div className="space-y-4">
+              {[
+                ['label', 'Final thresholded classification used by the UI result screen.'],
+                ['confidence', 'Confidence for the selected label as a 0-1 value.'],
+                ['scores', 'Raw class scores for fake and real before any threshold explanation in the UI.'],
+                ['processing_ms', 'How long the backend took to produce the result.'],
+                ['report', 'Signed report bundle that can be verified later to detect tampering.'],
+                ['details', 'Media-specific metadata such as sampled frames or face detection rate.'],
+                ['warnings', 'Notes worth surfacing when the scan has caveats.'],
+              ].map(([field, description]) => (
+                <div key={field} className="rounded-2xl border border-white/10 bg-black/20 px-4 py-4">
+                  <div className="font-semibold text-[#00D9FF] mb-1">{field}</div>
+                  <p className="text-gray-400 leading-relaxed">{description}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        <section className="mb-12 rounded-[32px] border border-white/10 bg-gradient-to-br from-[#111827]/80 to-[#1F2937]/75 p-8">
+          <div className="flex items-start gap-4 mb-6">
+            <AlertTriangle className="w-6 h-6 text-amber-300 flex-shrink-0 mt-1" />
+            <div>
+              <h2 className="text-3xl font-bold mb-2">Common errors</h2>
+              <p className="text-gray-300 leading-relaxed">
+                The most likely failures during local development are unsupported media, oversized
+                uploads, or the backend model not being ready.
+              </p>
             </div>
           </div>
 
-          {/* Python */}
-          <div className="mb-6">
-            <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
-              <Code className="w-5 h-5 text-[#00D9FF]" />
-              Python
-            </h3>
-            <div className="relative">
-              <button
-                onClick={() => handleCopy(pythonExample, 'python')}
-                className="absolute top-3 right-3 p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors z-10"
-                title="Copy code"
-              >
-                {copiedCode === 'python' ? (
-                  <Check className="w-4 h-4 text-green-400" />
-                ) : (
-                  <Copy className="w-4 h-4 text-gray-400" />
-                )}
-              </button>
-              <pre className="p-4 bg-black/30 rounded overflow-x-auto">
-                <code className="text-sm text-gray-300">{pythonExample}</code>
-              </pre>
-            </div>
-          </div>
-
-          {/* JavaScript */}
-          <div className="mb-6">
-            <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
-              <Code className="w-5 h-5 text-[#00D9FF]" />
-              JavaScript
-            </h3>
-            <div className="relative">
-              <button
-                onClick={() => handleCopy(javascriptExample, 'javascript')}
-                className="absolute top-3 right-3 p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors z-10"
-                title="Copy code"
-              >
-                {copiedCode === 'javascript' ? (
-                  <Check className="w-4 h-4 text-green-400" />
-                ) : (
-                  <Copy className="w-4 h-4 text-gray-400" />
-                )}
-              </button>
-              <pre className="p-4 bg-black/30 rounded overflow-x-auto">
-                <code className="text-sm text-gray-300">{javascriptExample}</code>
-              </pre>
-            </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            {[
+              ['400', 'Bad request or unreadable media'],
+              ['413', 'File too large'],
+              ['415', 'Unsupported media type'],
+              ['503', 'Model unavailable during startup or load failure'],
+            ].map(([code, label]) => (
+              <div key={code} className="rounded-2xl border border-white/10 bg-black/20 px-5 py-4">
+                <div className="text-lg font-bold text-red-300 mb-1">{code}</div>
+                <div className="text-gray-400">{label}</div>
+              </div>
+            ))}
           </div>
         </section>
 
-        {/* Rate Limits */}
-        <section className="mb-12">
-          <h2 className="text-3xl font-bold mb-6">Rate Limits</h2>
-          
-          <div className="overflow-hidden rounded-xl bg-gradient-to-br from-[#111827]/80 to-[#1F2937]/80 backdrop-blur-md border border-white/10">
-            <table className="w-full">
-              <thead className="bg-black/30">
-                <tr>
-                  <th className="px-6 py-4 text-left font-semibold">Tier</th>
-                  <th className="px-6 py-4 text-left font-semibold">Requests/Month</th>
-                  <th className="px-6 py-4 text-left font-semibold">Rate Limit</th>
-                  <th className="px-6 py-4 text-left font-semibold">Price</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/10">
-                <tr className="hover:bg-white/5 transition-colors">
-                  <td className="px-6 py-4">Free</td>
-                  <td className="px-6 py-4">100</td>
-                  <td className="px-6 py-4">10/min</td>
-                  <td className="px-6 py-4 text-[#00D9FF] font-semibold">$0</td>
-                </tr>
-                <tr className="hover:bg-white/5 transition-colors">
-                  <td className="px-6 py-4">Starter</td>
-                  <td className="px-6 py-4">5,000</td>
-                  <td className="px-6 py-4">60/min</td>
-                  <td className="px-6 py-4 text-[#00D9FF] font-semibold">$49/mo</td>
-                </tr>
-                <tr className="hover:bg-white/5 transition-colors">
-                  <td className="px-6 py-4">Professional</td>
-                  <td className="px-6 py-4">50,000</td>
-                  <td className="px-6 py-4">300/min</td>
-                  <td className="px-6 py-4 text-[#00D9FF] font-semibold">$299/mo</td>
-                </tr>
-                <tr className="hover:bg-white/5 transition-colors">
-                  <td className="px-6 py-4">Enterprise</td>
-                  <td className="px-6 py-4">Unlimited</td>
-                  <td className="px-6 py-4">Custom</td>
-                  <td className="px-6 py-4 text-[#00D9FF] font-semibold">Contact Sales</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        {/* Error Codes */}
-        <section className="mb-12">
-          <h2 className="text-3xl font-bold mb-6">Error Codes</h2>
-          
-          <div className="space-y-3">
-            <div className="p-4 rounded-lg bg-gradient-to-br from-[#111827]/80 to-[#1F2937]/80 backdrop-blur-md border border-white/10">
-              <div className="flex items-center gap-3 mb-2">
-                <code className="text-red-400 font-mono">400</code>
-                <span className="font-semibold">Bad Request</span>
-              </div>
-              <p className="text-sm text-gray-400">Invalid file format or missing required parameters.</p>
-            </div>
-            <div className="p-4 rounded-lg bg-gradient-to-br from-[#111827]/80 to-[#1F2937]/80 backdrop-blur-md border border-white/10">
-              <div className="flex items-center gap-3 mb-2">
-                <code className="text-red-400 font-mono">401</code>
-                <span className="font-semibold">Unauthorized</span>
-              </div>
-              <p className="text-sm text-gray-400">Invalid or missing API key.</p>
-            </div>
-            <div className="p-4 rounded-lg bg-gradient-to-br from-[#111827]/80 to-[#1F2937]/80 backdrop-blur-md border border-white/10">
-              <div className="flex items-center gap-3 mb-2">
-                <code className="text-red-400 font-mono">413</code>
-                <span className="font-semibold">Payload Too Large</span>
-              </div>
-              <p className="text-sm text-gray-400">File size exceeds 50MB limit.</p>
-            </div>
-            <div className="p-4 rounded-lg bg-gradient-to-br from-[#111827]/80 to-[#1F2937]/80 backdrop-blur-md border border-white/10">
-              <div className="flex items-center gap-3 mb-2">
-                <code className="text-red-400 font-mono">429</code>
-                <span className="font-semibold">Too Many Requests</span>
-              </div>
-              <p className="text-sm text-gray-400">Rate limit exceeded. Upgrade your plan for higher limits.</p>
-            </div>
-            <div className="p-4 rounded-lg bg-gradient-to-br from-[#111827]/80 to-[#1F2937]/80 backdrop-blur-md border border-white/10">
-              <div className="flex items-center gap-3 mb-2">
-                <code className="text-red-400 font-mono">500</code>
-                <span className="font-semibold">Internal Server Error</span>
-              </div>
-              <p className="text-sm text-gray-400">An error occurred on our servers. Please try again later.</p>
-            </div>
-          </div>
-        </section>
-
-        {/* CTA */}
-        <div className="text-center p-8 rounded-2xl bg-gradient-to-r from-[#00D9FF]/10 to-[#9333EA]/10 border border-[#00D9FF]/30">
-          <h3 className="text-2xl font-bold mb-4">Need Help?</h3>
-          <p className="text-gray-300 mb-6">
-            Contact our developer support team or join our community Discord for assistance.
+        <div className="text-center rounded-[32px] border border-[#00D9FF]/25 bg-gradient-to-r from-[#00D9FF]/10 via-white/5 to-[#9333EA]/10 p-8">
+          <h3 className="text-3xl font-bold mb-4">Need the product view too?</h3>
+          <p className="text-gray-300 max-w-2xl mx-auto mb-8">
+            Jump back into the upload flow or review the platform story. The docs now sit inside
+            the same overall product experience.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="bg-[#00D9FF] hover:bg-[#00C4E6] text-black px-6 py-3 rounded-lg font-semibold transition-all hover:shadow-lg hover:shadow-cyan-500/50">
-              Contact Support
+            <button
+              onClick={() => onNavigate('analyze')}
+              className="bg-[#00D9FF] hover:bg-[#00C4E6] text-black px-6 py-3 rounded-2xl font-semibold transition-all"
+            >
+              Open analyzer
             </button>
-            <button className="border-2 border-[#00D9FF] hover:bg-[#00D9FF]/10 text-white px-6 py-3 rounded-lg font-semibold transition-all">
-              Join Discord
+            <button
+              onClick={() => onNavigate('about')}
+              className="border border-white/10 hover:border-[#00D9FF]/35 hover:bg-white/5 text-white px-6 py-3 rounded-2xl font-semibold transition-all flex items-center justify-center gap-2"
+            >
+              Read about PixelProof
+              <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         </div>

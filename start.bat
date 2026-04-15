@@ -1,5 +1,5 @@
 @echo off
-REM Start PixelProof Backend and Frontend
+REM Build and start the merged PixelProof app
 
 echo.
 echo ================================
@@ -10,23 +10,37 @@ echo.
 REM Get the project directory
 cd /d "%~dp0"
 
-REM Start Backend in a new window
-echo Starting Backend Server...
-start "PixelProof Backend" cmd /k "cd code\backend && C:\Users\JAY\Desktop\PixelProof\venv\Scripts\python.exe main.py"
+set "PYTHON_EXE=%CD%\code\backend\venv310\Scripts\python.exe"
+if not exist "%PYTHON_EXE%" (
+  set "PYTHON_EXE=%CD%\code\backend\venv\Scripts\python.exe"
+)
 
-timeout /t 3 /nobreak
+if not exist "%PYTHON_EXE%" (
+  echo Python environment not found under code\backend\venv310 or code\backend\venv
+  pause
+  exit /b 1
+)
 
-REM Start Frontend in a new window
-echo Starting Frontend Server...
-start "PixelProof Frontend" cmd /k "cd code\frontend && npm run dev"
+echo Building Frontend Bundle...
+cd code\frontend
+call npm run build
+if errorlevel 1 (
+  echo.
+  echo Frontend build failed. Startup stopped.
+  pause
+  exit /b 1
+)
+cd /d "%~dp0"
+
+echo Starting Merged Backend + Frontend Server...
+start "PixelProof App" cmd /k "cd code\backend && ""%PYTHON_EXE%"" main.py"
 
 echo.
 echo ================================
-echo   Servers Starting...
+echo   App Starting...
 echo ================================
 echo.
-echo Backend: http://127.0.0.1:8000
-echo Frontend: http://localhost:5173
+echo App: http://127.0.0.1:8000
 echo API Docs: http://127.0.0.1:8000/docs
 echo.
 pause

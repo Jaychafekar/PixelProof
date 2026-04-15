@@ -1,0 +1,55 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+
+# Virtual environments
+venv/
+.venv/
+code/backend/venv/
+code/backend/venv310/
+
+# Node / frontend build artifacts
+node_modules/
+code/frontend/node_modules/
+code/frontend/public/dist/
+code/backend/static/
+
+# Logs
+*.log
+*.out.log
+*.err.log
+
+# Local runtime data
+code/backend/pixelproof.db
+code/backend/uploads/
+
+# Local datasets
+code/data/archive1/
+code/data/archive1.zip
+code/data/Celeb-DF/
+code/data/Celeb-DF.zip
+
+# Model scratch / backups
+code/backend/model/backup_*/
+code/backend/model/experiments/
+code/backend/model/holdout_eval.log
+code/backend/model/holdout_eval.err.log
+code/backend/model/profiles/*/deepfake_detection_model.h5
+
+# Demo media
+demo_samples/*
+!demo_samples/README.md

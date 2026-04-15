@@ -1,51 +1,40 @@
 """
-Quick Model Creator - Creates a pre-initialized model
-Since training has TensorFlow issues on Windows,  we'll create and save a basic working model
+Quick model creator for a shared PixelProof classifier artifact.
 """
 
-import os
-import numpy as np
-from tensorflow.keras.applications.mobilenet_v2 import MobileNetV2
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout, BatchNormalization, GlobalAveragePooling2D
+from __future__ import annotations
 
-# Configuration
-MODEL_DIR = os.path.join("..", "backend", "model")
-MODEL_PATH = os.path.join(MODEL_DIR, "deepfake_detection_model.h5")
+import sys
+from pathlib import Path
 
+BASE_DIR = Path(__file__).resolve().parent
+BACKEND_DIR = BASE_DIR.parent / "backend"
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+
+from modeling import build_classifier
+
+MODEL_DIR = BACKEND_DIR / "model"
+MODEL_PATH = MODEL_DIR / "deepfake_detection_model.h5"
 IMG_SIZE = (96, 96)
 
-os.makedirs(MODEL_DIR, exist_ok=True)
 
-print("Creating base model architecture...")
+def main() -> None:
+    MODEL_DIR.mkdir(parents=True, exist_ok=True)
 
-# Build model
-base = MobileNetV2(
-    include_top=False,
-    weights="imagenet",
-    input_shape=(IMG_SIZE[0], IMG_SIZE[1], 3)
-)
-base.trainable = False
+    print("Creating base model architecture...")
+    model, _ = build_classifier(IMG_SIZE, backbone_weights="imagenet")
+    model.compile(
+        optimizer="adam",
+        loss="categorical_crossentropy",
+        metrics=["accuracy"],
+    )
 
-model = Sequential([
-    base,
-    GlobalAveragePooling2D(),
-    Dense(512, activation="relu"),
-    BatchNormalization(),
-    Dropout(0.3),
-    Dense(128, activation="relu"),
-    Dropout(0.2),
-    Dense(2, activation="softmax")
-])
+    model.save(MODEL_PATH)
+    print(f"Model architecture saved to: {MODEL_PATH}")
+    print("\nNote: This is an untrained model initialized with ImageNet weights.")
+    print("For production use, please run full training with your dataset.")
 
-model.compile(
-    optimizer="adam",
-    loss="categorical_crossentropy",
-    metrics=["accuracy"]
-)
 
-# Save model
-model.save(MODEL_PATH)
-print(f"✅ Model architecture saved to: {MODEL_PATH}")
-print(f"\nNote: This is an untrained model initialized with ImageNet weights.")
-print(f"For production use, please run full training with your dataset.")
+if __name__ == "__main__":
+    main()
