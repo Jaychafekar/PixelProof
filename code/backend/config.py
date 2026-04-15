@@ -45,7 +45,7 @@ MODEL_META_PATH = MODEL_DIR / "deepfake_detection_model.meta.json"
 if not MODEL_META_PATH.exists():
     MODEL_META_PATH = LEGACY_MODEL_DIR / "deepfake_detection_model.meta.json"
 
-# Backward-compatible fallback for the repo's legacy GitHub-sourced model file.
+# Backward-compatible fallback for older single-file model exports.
 MODEL_PATH = MODEL_DIR / "deepfake_detection_model.h5"
 if not MODEL_PATH.exists():
     MODEL_PATH = LEGACY_MODEL_DIR / "deepfake_detection_model.h5"

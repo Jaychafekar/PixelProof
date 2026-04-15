@@ -53,3 +53,6 @@ code/backend/model/profiles/*/deepfake_detection_model.h5
 # Demo media
 demo_samples/*
 !demo_samples/README.md
+
+# Local packaged exports
+dist/

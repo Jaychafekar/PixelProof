@@ -95,11 +95,22 @@ The backend will refuse to start in `production` mode if the default signing sec
 
 `GET /health` now exposes warm-up status, request protection settings, and upload/video limits, which makes it easier to confirm a deployment is ready before sharing it with users.
 
-Recommended first hosting targets:
+Example hosting targets:
 
 - `Render` if you want the simplest web-service deployment
 - `Railway` if you want easy env var and volume management
 - a small `Ubuntu VPS` if you want full control over Docker and persistent storage
+
+## Submission Packaging
+
+To create a clean ZIP archive from tracked project files only:
+
+```powershell
+.\prepare_submission.ps1
+```
+
+By default this creates `dist\PixelProof-submission.zip` from the current `HEAD`, which keeps
+logs, datasets, virtual environments, and other local machine files out of the hand-in package.
 
 ## Retraining
 
@@ -188,7 +199,7 @@ Supported dataset layouts:
 
 ## Notes
 
-- The repo still contains a legacy `.h5` model file for backward compatibility.
+- The repo still contains a compatibility `.h5` model file for older loading paths.
 - The backend now loads a shared classifier architecture and prefers `.weights.h5` artifacts first.
 - The backend uses metadata-driven thresholding to avoid overcalling fake on real images.
 - Analysis responses now include an HMAC-signed report bundle that can be checked later with `POST /verify-report`.

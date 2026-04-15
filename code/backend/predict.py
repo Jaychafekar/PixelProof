@@ -72,7 +72,7 @@ def get_report_signing_status() -> Dict[str, Any]:
         "algorithm": REPORT_SIGNING_ALGORITHM,
         "verify_endpoint": REPORT_VERIFY_ENDPOINT,
         "mode": (
-            "development_default"
+            "default_secret"
             if REPORT_SIGNING_SECRET == DEFAULT_REPORT_SIGNING_SECRET
             else "configured_secret"
         ),
@@ -153,23 +153,23 @@ def _load_model_with_fallbacks(media_type: str) -> tuple[Sequential, str]:
             load_errors.append(
                 f"Full model load failed from {artifacts['full_model'].name} in {artifacts['dir']}: {exc}"
             )
-            # The legacy .h5 in this repo was saved with a newer Keras config.
-            # Loading weights into the known architecture keeps it usable.
+            # Some older .h5 exports contain only usable weights even when the
+            # serialized Keras config can no longer be loaded directly.
             try:
                 model = _build_classifier()
                 model.load_weights(str(artifacts["full_model"]))
-                return model, "legacy_h5_weights"
-            except Exception as legacy_exc:
+                return model, "compatibility_h5_weights"
+            except Exception as compatibility_exc:
                 load_errors.append(
-                    f"Legacy .h5 weights load failed from {artifacts['full_model'].name} "
-                    f"in {artifacts['dir']}: {legacy_exc}"
+                    f"Compatibility .h5 weights load failed from {artifacts['full_model'].name} "
+                    f"in {artifacts['dir']}: {compatibility_exc}"
                 )
 
     if load_errors:
         raise RuntimeError(" ; ".join(load_errors))
 
     raise FileNotFoundError(
-        "No compatible model artifact found. Expected a .weights.h5 file or legacy .h5 model "
+        "No compatible model artifact found. Expected a .weights.h5 file or compatible .h5 model "
         f"under {artifacts['dir']}."
     )
 

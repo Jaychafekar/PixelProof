@@ -61,7 +61,8 @@ const response = await fetch("${analyzeUrl}", {
 
 if (!response.ok) throw new Error("Analyze failed");
 const result = await response.json();
-console.log(result);`;
+document.getElementById("result").textContent =
+  \`\${result.label} (\${(result.confidence * 100).toFixed(1)}%)\`;`;
 
   const verifyExample = `curl -X POST ${verifyReportUrl} \\
   -H "Content-Type: application/json" \\
